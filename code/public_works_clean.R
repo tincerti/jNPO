@@ -18,12 +18,13 @@ source("code/0. functions.R")
 # ______________________________________________________________________________
 
 # Read in all excel files from directory (NOTE: Author written function) -------
-pw <- read_dir("data/npo/public_works", "xlsx", filename = T, skip = 1,
+pw <- read_dir("data/public_works", "xlsx", filename = T, skip = 1,
                col_types = "text")
 
 # Rename columns from Japanese to English --------------------------------------
 # Use regex to find patterns in differing columns to pass to coalesce 
 granter_ministry = syms(grep("支出元府省|所管府省", names(pw), value = TRUE))
+project_desc = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量"))
 grantee = syms(c("支出元独立行政法人の名称", grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE)))
 grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号", names(pw), value = TRUE))
 grant_name = syms(grep("契約担当", names(pw), value = TRUE))
@@ -33,12 +34,14 @@ bidding_type = syms(grep("一般競争入札・指名競争入札の別", names(
 num_bidders = syms(grep("応札・応募者数", names(pw), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(pw), value = TRUE))
 grantee_jcn = syms(c("法人番号", "契約の相手方の法人番号"))
-npo_type = syms(c("公益法人の場合", "公益法人の区分"))
+npo_type = syms(grep("公益法人の区分", names(pw), value = TRUE))
+contract_reason = syms(grep("随意契約によることとした会計法令の根拠条文及び理由|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(pw), value = TRUE))
 notes = syms(grep("備　　考|備考|備　考", names(pw), value = TRUE))
 
 # Combine columns based on string matches above
 pw <- pw %>%
   mutate(
+    project_desc = coalesce(!!! project_desc),
     granter_ministry = coalesce(!!! granter_ministry),
     grantee = coalesce(!!! grantee),
     grantee_detail = coalesce(!!! grantee_detail),
@@ -49,6 +52,8 @@ pw <- pw %>%
     num_bidders = coalesce(!!! num_bidders),
     admin_division = coalesce(!!! admin_division),
     grantee_jcn = coalesce(!!! grantee_jcn),
+    contract_reason = coalesce(!!! contract_reason),
+    npo_type = coalesce(!!! npo_type),
     notes = coalesce(!!! notes)
   ) %>%
   # Remove coalesced columns
@@ -57,17 +62,18 @@ pw <- pw %>%
     -matches("契約の相手方の商号又は名称|相手方の商号又は名称及び住所|契約担当"),
     -matches("備　　考|備考|備　考|予定価格|契約金額|一般競争入札・指名競争入札の別"),
     -matches("支出元独立行政法人の名称及び法人番号|都道府県|契約の相手方の法人番号"),
-    -matches("支出元独立行政法人の名称|応札・応募者数"),
-    -"法人番号"
+    -matches("支出元独立行政法人の名称|応札・応募者数|公益法人の区分"),
+    -matches("随意契約によることとした会計法令の根拠条文及び理由"),
+    -matches("随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由"),
+    -"法人番号", -"公共工事の名称、場所、期間及び種別", -"物品役務等の名称及び数量"
   ) %>%
   # Translate columns that don't require coalescing
   rename(
     granter_agency = "支出元独立行政法人",
-    project_name = "公共工事の名称、場所、期間及び種別",
     grant_date = "契約を締結した日",
     est_actual_ratio = "落札率",
-    npo_type = "公益法人の区分",
-    granter_jcn = "支出元独立行政法人の法人番号"
+    granter_jcn = "支出元独立行政法人の法人番号",
+    govt_reemployees = "再就職の役員の数",
   )
 colnames(pw)
 
@@ -114,13 +120,33 @@ pw <- pw %>%
     contract_amount_est = as.numeric(contract_amount)
   )
 
+# Add indicator for type of bidding procedure ----------------------------------
+pw <- pw %>%
+  mutate(competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+                                  "Competitive", "Negotiated"))
+
+# Clean govt re-employement column in NPO data amounts -------------------------
+# NOTE: Only exists for non-competitive bid contracts. Therefore not a
+# replacement for Amakudata as limited in scope. Also does not clarify dates
+# former officials joined the NPO 
+pw <- pw %>%
+  mutate(
+    govt_reemployees = case_when(
+      competitive_bid == "Competitive" ~ "-99",
+      govt_reemployees == "－" ~ "0",
+      is.na(govt_reemployees) & competitive_bid == "Negotiated" ~ "0",
+      TRUE ~ govt_reemployees),
+    govt_reemployees = str_remove(govt_reemployees, "名")
+  )
+
 # Final data cleaning, prep, and CSV export ------------------------------------
 pw <- pw %>% 
   mutate(grant_type = "Public Works") %>% # Add identifier for contracts
   select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
          contract_amount, contract_amount_est,
          grantee_clean, grantee, grantee_detail, grantee_jcn, 
-         grant_name, grant_type, npo_type, admin_division, filename) %>%
+         grant_name, grant_type, npo_type, admin_division, filename,
+         govt_reemployees, contract_reason) %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV
