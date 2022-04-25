@@ -132,8 +132,16 @@ subsidies <- subsidies %>%
 subsidies <- subsidies %>%
   mutate(grantee_clean = gsub(".*法人","", grantee), # Remove NPO signifier
          grantee_clean = gsub("\\s*\\([^\\)]+\\)", "" , grantee_clean), # Remove information in parens
-         grantee_clean = str_remove(grantee_clean, "東京都千代田区平河町2-6-3"), # Remove addresses 
-         grantee_clean = str_trim(grantee_clean, side = "both") # Remove whitespace
+         grantee_clean = gsub("\\s*\\（[^\\)]+\\）", "" , grantee_clean), # Remove information in parens
+         # More targeted manual cleaning
+         grantee_clean = str_remove(grantee_clean, "名古屋掖済会病院"), # Two names listed in row
+         grantee_clean = str_remove(grantee_clean, "アサヒビール大山崎山荘美術館"), # Two names listed in row
+         grantee_clean = str_remove(grantee_clean, " ）|）"), # Some random trailing parens
+         grantee_clean = str_remove(grantee_clean, "\r\n東京都渋谷区東2-22-14 ロゼ氷川6階"), # Remove address
+         grantee_clean = str_remove(grantee_clean, "\r\n東京都新宿区左門町6-17 YSKビル7F"), # Remove address
+         grantee_clean = str_trim(grantee_clean, side = "both"), # Remove whitespace
+         # Convert to half-width characters
+         grantee_clean = sanitizeZenkaku(grantee_clean) 
          )
 
 # Clean grant amounts ----------------------------------------------------------
