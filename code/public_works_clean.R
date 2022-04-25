@@ -148,6 +148,27 @@ pw <- pw %>%
     govt_reemployees = str_remove(govt_reemployees, "名")
   )
 
+# Translate ministry and agency names ------------------------------------------
+pw <- pw %>%
+  mutate(granter_ministry = case_when(
+    grepl("経済産業省", granter_ministry) ~ "METI",
+    grepl("防衛省", granter_ministry) ~ "MOD",
+    grepl("環境省", granter_ministry) ~ "MOE",
+    grepl("原子力規制庁", granter_ministry) ~ "MOE", # Nuclear Regulation Authority
+    grepl("財務省", granter_ministry) ~ "MOF", 
+    grepl("外務省", granter_ministry) ~ "MOFA", 
+    grepl("総務省", granter_ministry) ~ "MIAC", 
+    grepl("厚生労働省", granter_ministry) ~ "MHLW", 
+    grepl("農林水産省", granter_ministry) ~ "MAFF", 
+    grepl("法務省", granter_ministry) ~ "MOJ",
+    grepl("国土交通省", granter_ministry) ~ "MLIT",
+    grepl("文部科学省", granter_ministry) ~ "MEXT",
+    grepl("内閣府", granter_ministry) ~ "CAO",
+    grepl("復興庁", granter_ministry) ~ "Reconstruction Agency",
+    grepl("宮内庁", granter_ministry) ~ "Imperial Household Agency",
+    TRUE ~ granter_ministry
+  ))
+
 # Final data cleaning, prep, and CSV export ------------------------------------
 pw <- pw %>% 
   mutate(grant_type = "Public Works") %>% # Add identifier for contracts
