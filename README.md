@@ -1,21 +1,21 @@
 # jNPO
 
-Dataset of all subsidies and contracts from the Japanese government to nonprofit organizations (NPOs) from 2011 - present. 
-
-The raw data files used to create the dataset are located at: https://www.koeki-info.go.jp.
+Dataset of all subsidies and contracts from the Japanese government to nonprofit organizations (NPOs) from 2011 - present. The raw files used to create the dataset are located at: https://www.koeki-info.go.jp.
 
 All data files are presented in two formats:  
 
 1.  At the agency-date-grantee level. This data contains the following variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
-  - The granter ministry or agency
-  - The grant date. 
-  - The grant amount
-  - The NPO grantee
-  - The name of the grant
-  - The type of grant.
-  - The type of NPO
-  - The administrative division of the granting agency. 
-  - The raw filename from https://www.koeki-info.go.jp. 
+  - *granter_ministry*: The granter ministry or agency
+  - *grant_date*: The grant date. 
+  - *grant_amount*: The grant amount
+  - *grantee_clean*: The name of the NPO grantee, cleaned to facilitate ease of merging with other datasets. 
+  - *grantee*: The name of the NPO grantee as listed in the raw source files.
+  - *grantee_detail*: The name of the NPO grantee and associated details (e.g., address) as listed in the raw source files. 
+  - *grant_name*: The name of the grant
+  - *grant_type*: The type of grant (e.g., subsidy, contract, etc.). 
+  - *npo_type*: The type of NPO
+  - *admin_division*: The administrative division of the granting agency. 
+  - *filename*: The raw filename from https://www.koeki-info.go.jp. 
 
 
 ## Subsidies 
