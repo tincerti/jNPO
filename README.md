@@ -17,6 +17,7 @@ All data files are presented in two formats:
   - *admin_division*: The administrative division of the granting agency. 
   - *filename*: The raw filename from https://www.koeki-info.go.jp. 
 
+2. In time-series format at the agency-month of grant-grantee level. This format collapses the information above to include the total amount of grants given by each agency to each NPO in a given month. For months where no grant was given, the *grant_amount* is 0. 
 
 ## Subsidies 
 
