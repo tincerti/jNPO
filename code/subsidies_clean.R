@@ -18,7 +18,7 @@ source("code/0. functions.R")
 # ______________________________________________________________________________
 
 # Read in all excel files from directory ---------------------------------------
-subsidies <- read_dir("data/npo/subsidies", "xlsx", filename = T, skip = 2,
+subsidies <- read_dir("data/subsidies", "xlsx", filename = T, skip = 2,
                 col_types = "text")
   
 # Rename columns from Japanese to English --------------------------------------
