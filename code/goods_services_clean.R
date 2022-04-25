@@ -1,0 +1,198 @@
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# PREAMBLE, LIBRARIES, AND IMPORT ----
+# ______________________________________________________________________________
+
+# Preamble, packages -----------------------------------------------------------
+options(scipen=999) # Do not print in scientific notation
+
+library(tidyverse)
+library(rlang)
+library(readxl)
+library(lubridate)
+library(zipangu)
+library(tsibble)
+source("code/0. functions.R")
+
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# READ IN AND COMBINE COLUMNS PUBLIC WORKS CONTRACT DATA ----
+# ______________________________________________________________________________
+
+# Read in all excel files from directory (NOTE: Author written function) -------
+gs <- read_dir("data/goods_services", "xlsx", filename = T, skip = 1,
+               col_types = "text")
+
+# Rename columns from Japanese to English --------------------------------------
+# Use regex to find patterns in differing columns to pass to coalesce 
+granter_ministry = syms(grep("支出元府省|所管府省", names(gs), value = TRUE))
+description = syms(c("物品役務等の名称及び数量"))
+grantee = syms(grep("相手方法人の名|相手方の法人名", names(gs), value = TRUE))
+grantee_detail = syms(grep("契約の相手方の商号又は名称及び住所", names(gs), value = TRUE))
+grant_name = syms(grep("契約担当", names(gs), value = TRUE))
+amount_est = syms(grep("予定価格", names(gs), value = TRUE))
+amount = syms(grep("契約金額", names(gs), value = TRUE))
+bidding_type = syms(grep("一般競争入札・指名競争入札の別", names(gs), value = TRUE))
+num_bidders = syms(grep("応札・応募者数", names(gs), value = TRUE))
+admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(gs), value = TRUE))
+#grantee_jcn = syms(c("法人番号", "契約の相手方の法人番号"))
+npo_type = syms(grep("公益法人の区分", names(gs), value = TRUE))
+#contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(gs), value = TRUE))
+govt_reemployees = syms(grep("再就職の役員の数|再就職の\r\n役員の数", names(gs), value = TRUE))
+notes = syms(grep("備　　考|備考|備　考", names(gs), value = TRUE))
+
+# Combine columns based on string matches above
+check <- gs %>%
+  mutate(
+    description = coalesce(!!! description),
+    granter_ministry = coalesce(!!! granter_ministry),
+    grantee = coalesce(!!! grantee),
+    grantee_detail = coalesce(!!! grantee_detail),
+    grant_name = coalesce(!!! grant_name),
+    amount_est = coalesce(!!! amount_est),
+    amount = coalesce(!!! amount),
+    bidding_type = coalesce(!!! bidding_type),
+    num_bidders = coalesce(!!! num_bidders),
+    admin_division = coalesce(!!! admin_division),
+    #grantee_jcn = coalesce(!!! grantee_jcn),
+    #contract_reason = coalesce(!!! contract_reason),
+    govt_reemployees = coalesce(!!! govt_reemployees),
+    npo_type = coalesce(!!! npo_type),
+    notes = coalesce(!!! notes)
+  ) %>%
+  # Remove coalesced columns
+  select(
+    -matches("物品役務等の名称及び数量|支出元府省|所管府省|相手方法人の名|相手方の法人名"),
+    -matches("契約の相手方の商号又は名称|相手方の商号又は名称及び住所|契約担当"),
+    -matches("備　　考|備考|備　考|予定価格|契約金額|一般競争入札・指名競争入札の別"),
+    -matches("支出元独立行政法人の名称及び法人番号|都道府県|契約の相手方の法人番号"),
+    -matches("支出元独立行政法人の名称|応札・応募者数|公益法人の区分"),
+    -matches("随意契約によることとした会計法令|再就職の役員の数"),
+    -matches("随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由"), 
+    -"再就職の\r\n役員の数"
+  ) %>%
+  # Translate columns that don't require coalescing
+  rename(
+    granter_agency = "支出元独立行政法人",
+    grant_date = "契約を締結した日",
+    est_actual_ratio = "落札率"
+    #granter_jcn = "支出元独立行政法人の法人番号"
+  )
+colnames(check)
+
+# Remove NA rows (from notes at end of raw Excel files) ------------------------
+gs <- gs %>% filter(!is.na(amount))
+
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# CLEAN AND TRANSLATE ENTRIES IN PUBLIC WORKS DATA ----
+# ______________________________________________________________________________
+
+# Clean grantee column ---------------------------------------------------------
+# NPO name column does not always exist distinct from NPO name + address
+# Pull address out of NPO where necessary
+gs <- gs %>%
+  mutate(
+    grantee_clean = ifelse(is.na(grantee), grantee_detail, grantee),
+    grantee_clean = gsub("\\s*\\（[^\\）]+\\）", "" , grantee_clean), # Remove information in parens
+    # Extract string to the right of first occurance of 法人
+    grantee_clean = sub(".*?法人", "", grantee_clean), 
+    grantee_clean = str_trim(grantee_clean), 
+    grantee_detail_clean = str_remove(grantee_clean, ".*法人"),
+    grantee_clean = ifelse(is.na(grantee), sub("\\s.*", "", grantee_detail_clean),
+                           grantee_clean),
+    # Manual name cleaning
+    grantee_clean = case_when(
+      grepl("リバーフロント研究所", grantee_clean) ~ "リバーフロント研究所",
+      grepl("日本測量調査技術協会", grantee_clean) ~ "日本測量調査技術協会",
+      TRUE ~ grantee_clean
+    )
+  ) %>% 
+  select(-grantee_detail_clean)
+
+# Format dates as dates --------------------------------------------------------
+# Add month and year variables
+gs <- gs %>%
+  separate(col = grant_date, into = c("grant_date", "date2"),
+           sep = "(?=平成)|(?=令和)", extra = "merge", remove = FALSE) %>%
+  mutate(
+    grant_date = as.Date(as.numeric(grant_date), origin = "1899-12-30"),
+    date2 = convert_jdate(date2),
+    grant_date = coalesce(grant_date, date2),
+    grant_year = year(grant_date),
+    grant_month = yearmonth(grant_date)
+  ) %>%
+  select(-date2)
+
+# Clean grant amounts ----------------------------------------------------------
+gs <- gs %>%
+  mutate(
+    amount = as.numeric(amount),
+    amount_est = as.numeric(amount_est)
+  )
+
+# Add indicator for type of bidding procedure ----------------------------------
+gs <- gs %>%
+  mutate(competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+                                  "Competitive", "Negotiated"))
+
+# Clean govt re-employement column in NPO data amounts -------------------------
+# NOTE: Only exists for non-competitive bid contracts. Therefore not a
+# replacement for Amakudata as limited in scope. Also does not clarify dates
+# former officials joined the NPO 
+gs <- gs %>%
+  mutate(
+    govt_reemployees = case_when(
+      competitive_bid == "Competitive" ~ "-99",
+      govt_reemployees == "－" | govt_reemployees == "-" ~ "0",
+      is.na(govt_reemployees) & competitive_bid == "Negotiated" ~ "0",
+      TRUE ~ govt_reemployees),
+    govt_reemployees = str_remove(govt_reemployees, "名")
+  )
+
+# Translate ministry and agency names ------------------------------------------
+gs <- gs %>%
+  mutate(granter_ministry = case_when(
+    grepl("経済産業省", granter_ministry) ~ "METI",
+    grepl("防衛省", granter_ministry) ~ "MOD",
+    grepl("環境省", granter_ministry) ~ "MOE",
+    grepl("原子力規制庁", granter_ministry) ~ "MOE", # Nuclear Regulation Authority
+    grepl("財務省", granter_ministry) ~ "MOF", 
+    grepl("外務省", granter_ministry) ~ "MOFA", 
+    grepl("総務省", granter_ministry) ~ "MIAC", 
+    grepl("厚生労働省", granter_ministry) ~ "MHLW", 
+    grepl("農林水産省", granter_ministry) ~ "MAFF", 
+    grepl("法務省", granter_ministry) ~ "MOJ",
+    grepl("国土交通省", granter_ministry) ~ "MLIT",
+    grepl("文部科学省", granter_ministry) ~ "MEXT",
+    grepl("内閣府", granter_ministry) ~ "CAO",
+    grepl("復興庁", granter_ministry) ~ "Reconstruction Agency",
+    grepl("宮内庁", granter_ministry) ~ "Imperial Household Agency",
+    TRUE ~ granter_ministry
+  ))
+
+# Final data cleaning, prep, and CSV export ------------------------------------
+gs <- gs %>% 
+  mutate(grant_type = "Public Works") %>% # Add identifier for contracts
+  select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
+         amount, amount_est,
+         grantee_clean, grantee, grantee_detail, grantee_jcn, 
+         grant_name, grant_type, npo_type, admin_division, filename,
+         govt_reemployees, contract_reason) %>%
+  arrange(grant_date, granter_ministry, grantee_clean)
+
+# Export to CSV
+write_csv(gs, "data/goods_services_clean.csv")
+
+# Expand into time series dataset ----------------------------------------------
+gs_ts <- gs %>%
+  group_by(granter_ministry, grantee_clean, grant_month, grant_type) %>%
+  summarize(
+    amount = sum(amount),
+    amount_est = sum(amount_est)
+  ) %>%
+  as_tsibble(key = c(granter_ministry, grantee_clean, grant_type), 
+             index = grant_month) %>% 
+  fill_gaps(.full = TRUE) %>%
+  mutate(
+    amount = ifelse(is.na(amount), 0, amount),
+    amount_est = ifelse(is.na(amount_est), 0, amount_est)
+  )
+
