@@ -21,8 +21,8 @@ All data files are presented in two formats:
 
 ## Subsidies 
 
-Contains data on all subsidies from the Japanese government to NPOs from 2011 - present. 
+Contains data on all subsidies (補助金等) from the Japanese government to NPOs from 2011 - present. 
 
 ## Contracts
 
-Contains data on all contracts from the Japanese government to NPOs from 2011 - present. 
+Contains data on all contracts from the Japanese government to NPOs from 2011 - present. Contract data includes competitive bid (競争入札) and negotiated contracts (随意契約) for public works (公共工事) and goods and services (物品役務等). The number of bidders is provided for all competitive bid contracts. 
