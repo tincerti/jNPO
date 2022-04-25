@@ -24,9 +24,9 @@ pw <- read_dir("data/public_works", "xlsx", filename = T, skip = 1,
 # Rename columns from Japanese to English --------------------------------------
 # Use regex to find patterns in differing columns to pass to coalesce 
 granter_ministry = syms(grep("支出元府省|所管府省", names(pw), value = TRUE))
-project_desc = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量"))
+project_desc = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量", "公共工事の名称、場所、\r\n期間及び種別"))
 grantee = syms(c("支出元独立行政法人の名称", grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE)))
-grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号", names(pw), value = TRUE))
+grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号|契約の相手方の商号又は\r\n名称及び住所", names(pw), value = TRUE))
 grant_name = syms(grep("契約担当", names(pw), value = TRUE))
 contract_amount_est = syms(grep("予定価格", names(pw), value = TRUE))
 contract_amount = syms(grep("契約金額", names(pw), value = TRUE))
@@ -35,7 +35,7 @@ num_bidders = syms(grep("応札・応募者数", names(pw), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(pw), value = TRUE))
 grantee_jcn = syms(c("法人番号", "契約の相手方の法人番号"))
 npo_type = syms(grep("公益法人の区分", names(pw), value = TRUE))
-contract_reason = syms(grep("随意契約によることとした会計法令の根拠条文及び理由|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(pw), value = TRUE))
+contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(pw), value = TRUE))
 notes = syms(grep("備　　考|備考|備　考", names(pw), value = TRUE))
 
 # Combine columns based on string matches above
@@ -63,9 +63,10 @@ pw <- pw %>%
     -matches("備　　考|備考|備　考|予定価格|契約金額|一般競争入札・指名競争入札の別"),
     -matches("支出元独立行政法人の名称及び法人番号|都道府県|契約の相手方の法人番号"),
     -matches("支出元独立行政法人の名称|応札・応募者数|公益法人の区分"),
-    -matches("随意契約によることとした会計法令の根拠条文及び理由"),
+    -matches("随意契約によることとした会計法令"),
     -matches("随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由"),
-    -"法人番号", -"公共工事の名称、場所、期間及び種別", -"物品役務等の名称及び数量"
+    -"法人番号", -"公共工事の名称、場所、期間及び種別", -"物品役務等の名称及び数量", 
+    -"公共工事の名称、場所、\r\n期間及び種別", -"契約の相手方の商号又は\r\n名称及び住所"
   ) %>%
   # Translate columns that don't require coalescing
   rename(
