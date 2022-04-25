@@ -5,6 +5,12 @@ Dataset of all subsidies and contracts from the Japanese government to nonprofit
 All data files are presented in two formats:  
 
 1.  At the agency-date-grantee level. This data contains the following variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
+
+2. In time-series format at the agency-month of grant-grantee level. This format collapses the information above to include the total amount of grants given by each agency to each NPO in a given month. For months where no grant was given, the *grant_amount* is 0. 
+
+## Subsidies 
+
+Contains data on all subsidies (補助金等) from the Japanese government to NPOs from 2011 - present. Variables provided are as follows:
   - *granter_ministry*: The granter ministry or agency
   - *grant_date*: The grant date. 
   - *grant_amount*: The grant amount
@@ -16,12 +22,6 @@ All data files are presented in two formats:
   - *npo_type*: The type of NPO
   - *admin_division*: The administrative division of the granting agency. 
   - *filename*: The raw filename from https://www.koeki-info.go.jp. 
-
-2. In time-series format at the agency-month of grant-grantee level. This format collapses the information above to include the total amount of grants given by each agency to each NPO in a given month. For months where no grant was given, the *grant_amount* is 0. 
-
-## Subsidies 
-
-Contains data on all subsidies (補助金等) from the Japanese government to NPOs from 2011 - present. 
 
 ## Contracts
 
