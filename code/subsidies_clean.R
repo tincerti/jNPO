@@ -30,7 +30,7 @@ subsidies <- subsidies %>% rename(
   grantee2 = "補助金交付先法人名\r\n（平成25年8月末時点）",
   grantee3 = "補助金交付先法人名\r\n（平成26年11月末現在）",
   grantee_jcn = "補助金交付先名及び法人番号",
-  grant_amount = "交付決定額",
+  amount = "交付決定額",
   account_type = "支出元会計区分",
   grant_name = "支出元（目）名称",
   grant_date = "補助金交付決定等に係る支出負担行為ないし意思決定の日",
@@ -38,7 +38,7 @@ subsidies <- subsidies %>% rename(
   npo_type2 = "公益法人の場合",
   admin_division = "国所管、都道府県所管の区分"  ,
   grantee_detail2 = "補助金交付先名",
-  grant_amount2 = "交付決定額（円）",
+  amount2 = "交付決定額（円）",
   jcn = "法人番号",
   admin_division2 = "国認定、都道府県認定の区分",
   admin_division3 = "...10"
@@ -77,12 +77,12 @@ subsidies <- subsidies %>% mutate(
 subsidies <- subsidies %>% mutate(
     grantee = coalesce(grantee, grantee2, grantee3),
     grantee_detail = coalesce(grantee_detail, grantee_detail2),
-    grant_amount = coalesce(grant_amount, grant_amount2),
+    amount = coalesce(amount, amount2),
     admin_division = coalesce(admin_division, admin_division2, admin_division3),
     npo_type = coalesce(npo_type, npo_type)
   ) %>% 
   # Remove duplicated columns that are now coalesced
-  select(-grantee_detail2, -grantee2, -grantee3, -grant_amount2, -grantee_jcn,
+  select(-grantee_detail2, -grantee2, -grantee3, -amount2, -grantee_jcn,
          -admin_division2, -npo_type2, -admin_division3)
 
 # Starting H28 there are no separate grantee and grantee_detail columns. -------
@@ -147,23 +147,23 @@ subsidies <- subsidies %>%
 # Clean grant amounts ----------------------------------------------------------
 subsidies <- subsidies %>%
   # Need to remove a lot of odd characters and notes from grant amount column
-  filter(!is.na(grant_amount)) %>%
+  filter(!is.na(amount)) %>%
   mutate(
-    grant_amount = gsub("\\（.*","", grant_amount),
-    grant_amount = gsub("\\(.*","", grant_amount),
-    grant_amount = str_remove(grant_amount, "円|△|。"),
-    grant_amount = str_replace(grant_amount, pattern = ",", replacement = ""),
-    grant_amount = gsub(",", "", grant_amount),
-    grant_amount = str_trim(grant_amount),
-    grant_amount = as.numeric(grant_amount)
+    amount = gsub("\\（.*","", amount),
+    amount = gsub("\\(.*","", amount),
+    amount = str_remove(amount, "円|△|。"),
+    amount = str_replace(amount, pattern = ",", replacement = ""),
+    amount = gsub(",", "", amount),
+    amount = str_trim(amount),
+    amount = as.numeric(amount)
   )
 
 # Final data cleaning and prep -------------------------------------------------
 subsidies <- subsidies %>% 
-  filter(!is.na(grantee) & !is.na(grant_amount)) %>% # Remove NA grantees
+  filter(!is.na(grantee) & !is.na(amount)) %>% # Remove NA grantees
   mutate(grant_type = "Subsidy", # Add identifier for subsidies
-         grant_amount = as.numeric(gsub("[^0-9.-]", "", grant_amount))) %>% 
-  select(granter_ministry, grant_date, grant_month, grant_year, grant_amount, 
+         amount = as.numeric(gsub("[^0-9.-]", "", amount))) %>% 
+  select(granter_ministry, grant_date, grant_month, grant_year, amount, 
          grantee_clean, grantee, grantee_detail, jcn, 
          grant_name, grant_type, npo_type, admin_division, filename)
 
@@ -173,11 +173,11 @@ write_csv(subsidies, "data/npo/subsidies_clean.csv")
 # Expand into time series dataset ----------------------------------------------
 subsidies_ts <- subsidies %>%
   group_by(granter_ministry, grantee_clean, grant_month, grant_type) %>%
-  summarize(grant_amount = sum(grant_amount)) %>%
+  summarize(amount = sum(amount)) %>%
   as_tsibble(key = c(granter_ministry, grantee_clean, grant_type), 
              index = grant_month) %>% 
   fill_gaps(.full = TRUE) %>%
-  mutate(grant_amount = ifelse(is.na(grant_amount), 0, grant_amount))
+  mutate(amount = ifelse(is.na(amount), 0, amount))
 
 
 

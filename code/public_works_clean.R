@@ -28,8 +28,8 @@ project_desc = syms(c("公共工事の名称、場所、期間及び種別", "�
 grantee = syms(c("支出元独立行政法人の名称", grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE)))
 grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号|契約の相手方の商号又は\r\n名称及び住所", names(pw), value = TRUE))
 grant_name = syms(grep("契約担当", names(pw), value = TRUE))
-contract_amount_est = syms(grep("予定価格", names(pw), value = TRUE))
-contract_amount = syms(grep("契約金額", names(pw), value = TRUE))
+amount_est = syms(grep("予定価格", names(pw), value = TRUE))
+amount = syms(grep("契約金額", names(pw), value = TRUE))
 bidding_type = syms(grep("一般競争入札・指名競争入札の別", names(pw), value = TRUE))
 num_bidders = syms(grep("応札・応募者数", names(pw), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(pw), value = TRUE))
@@ -47,8 +47,8 @@ pw <- pw %>%
     grantee = coalesce(!!! grantee),
     grantee_detail = coalesce(!!! grantee_detail),
     grant_name = coalesce(!!! grant_name),
-    contract_amount_est = coalesce(!!! contract_amount_est),
-    contract_amount = coalesce(!!! contract_amount),
+    amount_est = coalesce(!!! amount_est),
+    amount = coalesce(!!! amount),
     bidding_type = coalesce(!!! bidding_type),
     num_bidders = coalesce(!!! num_bidders),
     admin_division = coalesce(!!! admin_division),
@@ -80,7 +80,7 @@ pw <- pw %>%
 colnames(pw)
 
 # Remove NA rows (from notes at end of raw Excel files) ------------------------
-pw <- pw %>% filter(!is.na(contract_amount))
+pw <- pw %>% filter(!is.na(amount))
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # CLEAN AND TRANSLATE ENTRIES IN PUBLIC WORKS DATA ----
@@ -125,8 +125,8 @@ pw <- pw %>%
 # Clean grant amounts ----------------------------------------------------------
 pw <- pw %>%
   mutate(
-    contract_amount = as.numeric(contract_amount),
-    contract_amount_est = as.numeric(contract_amount_est)
+    amount = as.numeric(amount),
+    amount_est = as.numeric(amount_est)
   )
 
 # Add indicator for type of bidding procedure ----------------------------------
@@ -152,7 +152,7 @@ pw <- pw %>%
 pw <- pw %>% 
   mutate(grant_type = "Public Works") %>% # Add identifier for contracts
   select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
-         contract_amount, contract_amount_est,
+         amount, amount_est,
          grantee_clean, grantee, grantee_detail, grantee_jcn, 
          grant_name, grant_type, npo_type, admin_division, filename,
          govt_reemployees, contract_reason) %>%
@@ -165,14 +165,14 @@ write_csv(pw, "data/public_works_clean.csv")
 pw_ts <- pw %>%
   group_by(granter_ministry, grantee_clean, grant_month, grant_type) %>%
   summarize(
-    contract_amount = sum(contract_amount),
-    contract_amount_est = sum(contract_amount_est)
+    amount = sum(amount),
+    amount_est = sum(amount_est)
     ) %>%
   as_tsibble(key = c(granter_ministry, grantee_clean, grant_type), 
              index = grant_month) %>% 
   fill_gaps(.full = TRUE) %>%
   mutate(
-    contract_amount = ifelse(is.na(contract_amount), 0, contract_amount),
-    contract_amount_est = ifelse(is.na(contract_amount_est), 0, contract_amount_est)
+    amount = ifelse(is.na(amount), 0, amount),
+    amount_est = ifelse(is.na(amount_est), 0, amount_est)
     )
 
