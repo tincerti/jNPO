@@ -86,6 +86,24 @@ gs <- gs %>% filter(!is.na(amount))
 # ______________________________________________________________________________
 
 # Clean amount (price paid for goods and services) columns ---------------------
+gs <- gs %>%
+  mutate(
+    amount = sub(".*支出実績：", "", amount),
+    amount = sub(".*?支払実績総額", "", amount),
+    amount = sub("分担契約.*", "", amount),
+    amount = gsub(",", "", amount), # Remove commas from numbers
+    #amount_test = str_extract(amount, "(\\d)+(?=円)")
+    ) %>%
+    # Remove nonstandard amounts, such as per person, per book, etc.
+  filter(
+    !str_detect(amount, "円／人|円/人"), # 5 rows
+    # Remove values with @ symbol until it can be determined what this signifies 
+    !str_detect(amount, "@|＠"), # 181 rows
+    !str_detect(amount, "冊") # 4 rows
+    # Remaining: entries with two values, and removing yen symbols
+    )
+
+check <- gs %>% select(amount_est, amount)
 
 # Clean grantee column ---------------------------------------------------------
 # NPO name column does not always exist distinct from NPO name + address
@@ -94,7 +112,7 @@ gs <- gs %>%
   mutate(
     grantee_clean = ifelse(is.na(grantee), grantee_detail, grantee),
     grantee_clean = gsub("\\s*\\（[^\\）]+\\）", "" , grantee_clean), # Remove information in parens
-    # Extract string to the right of first occurance of 法人
+    # Extract string to the right of first occurrence of 法人
     grantee_clean = sub(".*?法人", "", grantee_clean), 
     grantee_clean = str_trim(grantee_clean), 
     grantee_detail_clean = str_remove(grantee_clean, ".*法人"),
