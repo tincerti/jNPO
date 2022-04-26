@@ -40,7 +40,7 @@ govt_reemployees = syms(grep("再就職の役員の数|再就職の\r\n役員の
 notes = syms(grep("備　　考|備考|備　考", names(gs), value = TRUE))
 
 # Combine columns based on string matches above
-check <- gs %>%
+gs <- gs %>%
   mutate(
     description = coalesce(!!! description),
     granter_ministry = coalesce(!!! granter_ministry),
@@ -76,14 +76,17 @@ check <- gs %>%
     est_actual_ratio = "落札率"
     #granter_jcn = "支出元独立行政法人の法人番号"
   )
-colnames(check)
+colnames(gs)
 
 # Remove NA rows (from notes at end of raw Excel files) ------------------------
 gs <- gs %>% filter(!is.na(amount))
 
+
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-# CLEAN AND TRANSLATE ENTRIES IN PUBLIC WORKS DATA ----
+# CLEAN AND TRANSLATE ENTRIES IN GOODS AND SERVICES DATA ----
 # ______________________________________________________________________________
+
+# Clean amount (price paid for goods and services) columns ---------------------
 
 # Clean grantee column ---------------------------------------------------------
 # NPO name column does not always exist distinct from NPO name + address
