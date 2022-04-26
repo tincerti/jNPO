@@ -24,17 +24,17 @@ gs <- read_dir("data/goods_services", "xlsx", filename = T, skip = 1,
 # Rename columns from Japanese to English --------------------------------------
 # Use regex to find patterns in differing columns to pass to coalesce 
 granter_ministry = syms(grep("支出元府省|所管府省", names(gs), value = TRUE))
-description = syms(c("物品役務等の名称及び数量"))
+description = syms(c("物品役務等の名称及び数量", "物品役務等の名称\r\n及び数量"))
 grantee = syms(grep("相手方法人の名|相手方の法人名", names(gs), value = TRUE))
-grantee_detail = syms(grep("契約の相手方の商号又は名称及び住所", names(gs), value = TRUE))
+grantee_detail = syms(grep("契約の相手方の商号又は名称及び住所|契約の相手方の商号又は\r\n名称及び住所", names(gs), value = TRUE))
 grant_name = syms(grep("契約担当", names(gs), value = TRUE))
 amount_est = syms(grep("予定価格", names(gs), value = TRUE))
 amount = syms(grep("契約金額", names(gs), value = TRUE))
 bidding_type = syms(grep("一般競争入札・指名競争入札の別", names(gs), value = TRUE))
 num_bidders = syms(grep("応札・応募者数", names(gs), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(gs), value = TRUE))
-#grantee_jcn = syms(c("法人番号", "契約の相手方の法人番号"))
-npo_type = syms(grep("公益法人の区分", names(gs), value = TRUE))
+grantee_jcn = syms(c("法人番号"))
+npo_type = syms(c("公益法人の区分"))
 #contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(gs), value = TRUE))
 govt_reemployees = syms(grep("再就職の役員の数|再就職の\r\n役員の数", names(gs), value = TRUE))
 notes = syms(grep("備　　考|備考|備　考", names(gs), value = TRUE))
@@ -52,7 +52,7 @@ gs <- gs %>%
     bidding_type = coalesce(!!! bidding_type),
     num_bidders = coalesce(!!! num_bidders),
     admin_division = coalesce(!!! admin_division),
-    #grantee_jcn = coalesce(!!! grantee_jcn),
+    grantee_jcn = coalesce(!!! grantee_jcn),
     #contract_reason = coalesce(!!! contract_reason),
     govt_reemployees = coalesce(!!! govt_reemployees),
     npo_type = coalesce(!!! npo_type),
@@ -60,27 +60,26 @@ gs <- gs %>%
   ) %>%
   # Remove coalesced columns
   select(
-    -matches("物品役務等の名称及び数量|支出元府省|所管府省|相手方法人の名|相手方の法人名"),
-    -matches("契約の相手方の商号又は名称|相手方の商号又は名称及び住所|契約担当"),
+    -matches("物品役務等の名称|支出元府省|所管府省|相手方法人の名|相手方の法人名"),
+    -matches("契約の相手方の商号又は|相手方の商号又は名称及び住所|契約担当"),
     -matches("備　　考|備考|備　考|予定価格|契約金額|一般競争入札・指名競争入札の別"),
     -matches("支出元独立行政法人の名称及び法人番号|都道府県|契約の相手方の法人番号"),
     -matches("支出元独立行政法人の名称|応札・応募者数|公益法人の区分"),
     -matches("随意契約によることとした会計法令|再就職の役員の数"),
     -matches("随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由"), 
-    -"再就職の\r\n役員の数"
+    -"再就職の\r\n役員の数", -"法人番号"
   ) %>%
   # Translate columns that don't require coalescing
   rename(
     granter_agency = "支出元独立行政法人",
     grant_date = "契約を締結した日",
-    est_actual_ratio = "落札率"
-    #granter_jcn = "支出元独立行政法人の法人番号"
+    est_actual_ratio = "落札率",
+    granter_jcn = "支出元独立行政法人の法人番号"
   )
 colnames(gs)
 
 # Remove NA rows (from notes at end of raw Excel files) ------------------------
 gs <- gs %>% filter(!is.na(amount))
-
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # CLEAN AND TRANSLATE ENTRIES IN GOODS AND SERVICES DATA ----
