@@ -170,8 +170,20 @@ gs <- gs %>%
 # Remove odd characters from grant amounts
 gs <- gs %>%
   mutate(
-    amount = as.numeric(amount),
-    amount_est = as.numeric(amount_est)
+    across(c(amount, amount_est), ~ifelse(. %in% c("－", "-"), 0, .)),
+    amount_est = ifelse(amount_est == "非公表", NA, amount_est),
+    across(c(amount, amount_est), ~str_remove(., "円"))
+    )
+
+
+    amount = ifelse(amount == "－", 0, amount),
+    amount = gsub("\\（.*","", amount),
+    amount = gsub("\\(.*","", amount),
+    amount = str_remove(amount, "円|△|。"),
+    amount = str_replace(amount, pattern = ",", replacement = ""),
+    amount = gsub(",", "", amount),
+    amount = str_trim(amount),
+    amount = as.numeric(amount)
   )
 
 # Add indicator for type of bidding procedure ----------------------------------
