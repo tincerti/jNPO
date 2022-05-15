@@ -127,21 +127,47 @@ gs <- gs %>%
   ) %>% 
   select(-grantee_detail_clean)
 
-# Format dates as dates --------------------------------------------------------
+# Clean dates ------------------------------------------------------------------
+# Pull imperial dates out of date columns
+gs <- gs %>%
+  mutate(
+    date_j = ifelse(str_detect(grant_date, "H|平成|令和|R"), grant_date, NA),
+    date_j = sanitizeZenkaku(date_j), # Dates are a mix of full and half width characters
+    date_j = str_remove(date_j, " "), # Some spaces in middle of Japanese date strings
+    grant_date = ifelse(str_detect(grant_date, "H|平成|令和|R"), NA, grant_date),
+    
+    # Convert Excel string dates to Date format
+    grant_date = as.Date(as.numeric(grant_date), origin = "1899-12-30")
+  )
+
+# Grantees with subsidies delivered in batches are listed on the same row, sometimes with multiple dates.
+# Make each grant an individual record by pulling out records with multiple dates,
+# and returning the earliest date. Using earliest date because not all records with 
+# multiple amounts have multiple dates, so cannot necessarily split rows. 
+gs <- gs %>%
+  mutate(
+    date1 = gsub("(?<=\\()[^()]*(?=\\))(*SKIP)(*F)|.", "", date_j, perl=T), # First date in parens, second outside
+    date1 = ifelse(!str_detect(date1, "年"), NA, date1), # Some mismatches, remove those without date
+    date2 = gsub("\\([^()]*\\)", "", date_j),
+    date2 = str_replace(date2, "\\（[^\\）]*\\）", ""),  # Remove other parenthetical notations in dates
+    date2 = str_replace(date2, "\\([^\\）]*\\）", ""),
+    date_j = ifelse(!is.na(date1), date1, date2),
+    date_j = gsub("[[:space:]]", "", date_j),
+    date_j = convert_jdate(date_j),
+    grant_date = coalesce(grant_date, date_j)
+    ) %>%
+  select(-date_j, -date1, -date2)
+
 # Add month and year variables
 gs <- gs %>%
-  separate(col = grant_date, into = c("grant_date", "date2"),
-           sep = "(?=平成)|(?=令和)", extra = "merge", remove = FALSE) %>%
   mutate(
-    grant_date = as.Date(as.numeric(grant_date), origin = "1899-12-30"),
-    date2 = convert_jdate(date2),
-    grant_date = coalesce(grant_date, date2),
     grant_year = year(grant_date),
     grant_month = yearmonth(grant_date)
-  ) %>%
-  select(-date2)
+  )
 
 # Clean grant amounts ----------------------------------------------------------
+# Combine grant amounts where multiple listed in same cell
+# Remove odd characters from grant amounts
 gs <- gs %>%
   mutate(
     amount = as.numeric(amount),
