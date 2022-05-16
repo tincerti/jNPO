@@ -76,7 +76,9 @@ gs <- gs %>%
     est_actual_ratio = "落札率",
     granter_jcn = "支出元独立行政法人の法人番号"
   )
-colnames(gs)
+
+colnames(gs) # List column names
+#rm(list=setdiff(ls(), "gs")) # Clear intermediary objects from workspace
 
 # Remove NA rows (from notes at end of raw Excel files) ------------------------
 gs <- gs %>% filter(!is.na(amount))
@@ -166,24 +168,57 @@ gs <- gs %>%
   )
 
 # Clean grant amounts ----------------------------------------------------------
-# Combine grant amounts where multiple listed in same cell
-# Remove odd characters from grant amounts
+# Pull out numeric value where multiple values and/or characters listed
+gs <- gs %>% mutate(
+  # convert USD amount to JPY using FOREX on day of grant
+  amount = ifelse( 
+    str_detect(amount, "US\\$"), 
+    as.character(as.numeric(str_extract(amount, "[[:digit:]]+")) * 80.2223), 
+    amount),
+  # Keep only value after total where indicator of total value paid given
+  amount = sub('.*（変更）', '', amount),
+  amount = sub('.*（変更後）', '', amount),
+  amount = sub('.*総額', '', amount),
+  amount = sub('.*実績額:', '', amount)
+  ) %>%
+  # Combine grant amounts where multiple listed in same cell
+  separate(amount, c("amount", "amount2"), sep = "\\)") 
+
+nonnumeric <- gs[is.na(as.numeric(as.character(gs$amount))),]
+
+# %>%
+#   # Remove all remaining non-numeric characters from amount column
+#   mutate(
+#     amount = as.numeric(str_extract(amount, "-?\\d+"))
+#     )
+
+# Remove odd entries from dataframe
+# Can revisit if clarification given by cabinet office
+# Note: Removes 0.16% of data
 gs <- gs %>%
+  filter(
+    !str_detect(amount, "ほか"),
+    !str_detect(amount, "口座振替済"),
+    !str_detect(amount, "計画変更後契約金額"),
+    !str_detect(amount, "月額"), # No way of knowing how many months contract lasted
+    !str_detect(amount, "単価"), # No way of knowing how many units purchased
+    !str_detect(amount, "会場使用料"), # Same as above, includes per unit fees 
+    !str_detect(amount, "登記情報提供契約約款に定めた金額"),
+    !str_detect(amount, "実施1回あたり"),
+    !str_detect(amount, "身体計測"),
+    !str_detect(amount, "品目ごとの単価契約"),
+    !str_detect(amount, "ＧＭサーベイメータ")
+  ) %>%
+  # Remove unnecessary words and characters from amount column
   mutate(
     across(c(amount, amount_est), ~ifelse(. %in% c("－", "-"), 0, .)),
+    across(c(amount, amount_est), ~str_remove(., "円")),
     amount_est = ifelse(amount_est == "非公表", NA, amount_est),
-    across(c(amount, amount_est), ~str_remove(., "円"))
-    )
-
-
-    amount = ifelse(amount == "－", 0, amount),
-    amount = gsub("\\（.*","", amount),
-    amount = gsub("\\(.*","", amount),
-    amount = str_remove(amount, "円|△|。"),
-    amount = str_replace(amount, pattern = ",", replacement = ""),
-    amount = gsub(",", "", amount),
-    amount = str_trim(amount),
-    amount = as.numeric(amount)
+    amount = str_replace(amount, "予定調達総額", ""),
+    amount = str_replace(amount, "支払実績", ""),
+    amount = str_replace(amount, "平成31・令和元年度実績額：", ""),
+    amount = str_replace(amount, "令和元年12月18日に変更契約 変更後金額：", ""),
+    amount = str_replace(amount, "／シフト", "")
   )
 
 # Add indicator for type of bidding procedure ----------------------------------
@@ -191,7 +226,7 @@ gs <- gs %>%
   mutate(competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
                                   "Competitive", "Negotiated"))
 
-# Clean govt re-employement column in NPO data amounts -------------------------
+# Clean govt re-employment column in NPO data amounts -------------------------
 # NOTE: Only exists for non-competitive bid contracts. Therefore not a
 # replacement for Amakudata as limited in scope. Also does not clarify dates
 # former officials joined the NPO 
