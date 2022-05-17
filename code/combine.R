@@ -17,9 +17,9 @@ source("code/0. functions.R")
 jnpo <- read_dir("data", extension = "csv", delim = ",", filename = FALSE)
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-# FINALIZE FOR EXPORT ----
+# ARRANGE AND SORT COLUMNS ----
 # ______________________________________________________________________________
-colnames(jnpo)
+
 # Arrange files
 jnpo <- jnpo %>%
   arrange(
@@ -32,5 +32,24 @@ jnpo <- jnpo %>%
     grant_name, grantee, grantee_detail, grant_type, description, contract_reason,
     npo_type, admin_division, filename
     )
+
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# FILL NA VALUES WHERE APPLICABLE ----
+# ______________________________________________________________________________
+
+# Fill NA JCN codes by group (grantee)
+jnpo <- jnpo %>%
+  group_by(grantee_clean) %>%
+  fill(grantee_jcn, .direction = "downup") %>%
+  ungroup() %>%
+  group_by(granter_ministry)  %>%
+  ungroup()
+
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# EXPORT TO CSV ----
+# ______________________________________________________________________________
+
+write_csv(jnpo, "data/jnpo.csv")
+
 
 
