@@ -267,7 +267,7 @@ gs <- gs %>%
   mutate(
     govt_reemployees = case_when(
       competitive_bid == "Competitive" ~ "-99",
-      govt_reemployees == "－" | govt_reemployees == "-" ~ "0",
+      govt_reemployees %in% c("－", "-", "　－", "無")  ~ "0",
       is.na(govt_reemployees) & competitive_bid == "Negotiated" ~ "0",
       TRUE ~ govt_reemployees),
     govt_reemployees = str_remove(govt_reemployees, "名")
@@ -288,20 +288,28 @@ gs <- gs %>%
     grepl("法務省", granter_ministry) ~ "MOJ",
     grepl("国土交通省", granter_ministry) ~ "MLIT",
     grepl("文部科学省", granter_ministry) ~ "MEXT",
-    grepl("内閣府", granter_ministry) ~ "CAO",
+    grepl("内閣", granter_ministry) ~ "CAO",
     grepl("復興庁", granter_ministry) ~ "Reconstruction Agency",
     grepl("宮内庁", granter_ministry) ~ "Imperial Household Agency",
+    grepl("警察庁", granter_ministry) ~ "National Police Agency",
+    grepl("金融庁", granter_ministry) ~ "Financial Services Agency",
+    grepl("消費者庁", granter_ministry) ~ "Consumer Affairs Agency",
+    grepl("人事院", granter_ministry) ~ "National Personnel Authority",
+    grepl("内閣官房", granter_ministry) ~ "Cabinet secretariate",
     TRUE ~ granter_ministry
   ))
 
 # Final data cleaning, prep, and CSV export ------------------------------------
 gs <- gs %>% 
-  mutate(grant_type = "Public Works") %>% # Add identifier for contracts
+  mutate(
+    grant_type = "Goods and Services", # Add identifier for goods and services
+    amount = amount_clean # Remove if you wish to keep all original string information in amount column
+    ) %>% 
   select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
          amount, amount_est,
          grantee_clean, grantee, grantee_detail, grantee_jcn, 
          grant_name, grant_type, npo_type, admin_division, filename,
-         govt_reemployees, contract_reason) %>%
+         govt_reemployees) %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV
