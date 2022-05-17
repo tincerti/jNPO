@@ -24,7 +24,7 @@ pw <- read_dir("data/public_works", "xlsx", filename = T, skip = 1,
 # Rename columns from Japanese to English --------------------------------------
 # Use regex to find patterns in differing columns to pass to coalesce 
 granter_ministry = syms(grep("支出元府省|所管府省", names(pw), value = TRUE))
-project_desc = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量", "公共工事の名称、場所、\r\n期間及び種別"))
+description = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量", "公共工事の名称、場所、\r\n期間及び種別"))
 grantee = syms(c("支出元独立行政法人の名称", grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE)))
 grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号|契約の相手方の商号又は\r\n名称及び住所", names(pw), value = TRUE))
 grant_name = syms(grep("契約担当", names(pw), value = TRUE))
@@ -42,7 +42,7 @@ notes = syms(grep("備　　考|備考|備　考", names(pw), value = TRUE))
 # Combine columns based on string matches above
 pw <- pw %>%
   mutate(
-    project_desc = coalesce(!!! project_desc),
+    description = coalesce(!!! description),
     granter_ministry = coalesce(!!! granter_ministry),
     grantee = coalesce(!!! grantee),
     grantee_detail = coalesce(!!! grantee_detail),
@@ -129,10 +129,15 @@ pw <- pw %>%
     amount_est = as.numeric(amount_est)
   )
 
-# Add indicator for type of bidding procedure ----------------------------------
+# Clean bidding information ----------------------------------------------------
 pw <- pw %>%
-  mutate(competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
-                                  "Competitive", "Negotiated"))
+  mutate(
+    # Clean number of bidders column
+    num_bidders = ifelse(num_bidders == "-", 0, num_bidders),
+    # Add indicator for type of bidding procedure
+    competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+                                  "Competitive", "Negotiated")
+    )
 
 # Clean govt re-employement column in NPO data amounts -------------------------
 # NOTE: Only exists for non-competitive bid contracts. Therefore not a
@@ -175,8 +180,8 @@ pw <- pw %>%
   select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
          amount, amount_est,
          grantee_clean, grantee, grantee_detail, grantee_jcn, 
-         grant_name, grant_type, npo_type, admin_division, filename,
-         govt_reemployees, contract_reason) %>%
+         grant_name, description, grant_type, npo_type, admin_division,
+         num_bidders, competitive_bid, contract_reason, govt_reemployees, filename) %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV

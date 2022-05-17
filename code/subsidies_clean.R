@@ -24,12 +24,13 @@ subsidies <- read_dir("data/subsidies", "xlsx", filename = T, skip = 2,
 # Rename columns from Japanese to English --------------------------------------
 subsidies <- subsidies %>% rename(
   granter_ministry = "支出元府省" ,
-  project_name = "事業名",
+  description = "事業名",
   grantee_detail = "補助金交付先名\r\n",
   grantee = "補助金交付先法人名\r\n（平成24年９月末時点）",
   grantee2 = "補助金交付先法人名\r\n（平成25年8月末時点）",
   grantee3 = "補助金交付先法人名\r\n（平成26年11月末現在）",
   grantee_jcn = "補助金交付先名及び法人番号",
+  jcn = "法人番号",
   amount = "交付決定額",
   account_type = "支出元会計区分",
   grant_name = "支出元（目）名称",
@@ -39,7 +40,6 @@ subsidies <- subsidies %>% rename(
   admin_division = "国所管、都道府県所管の区分"  ,
   grantee_detail2 = "補助金交付先名",
   amount2 = "交付決定額（円）",
-  jcn = "法人番号",
   admin_division2 = "国認定、都道府県認定の区分",
   admin_division3 = "...10"
 )
@@ -69,7 +69,8 @@ subsidies <- subsidies %>%
 subsidies <- subsidies %>% mutate(
     jcn = ifelse(is.na(jcn), gsub("[^0-9.]", "", grantee_jcn), jcn),
     grantee = ifelse(is.na(grantee), gsub("法人番号.*", "", grantee_jcn), grantee),
-    grantee = sub("\\s+[^ ]+[0-9]$", "", grantee)
+    grantee = sub("\\s+[^ ]+[0-9]$", "", grantee),
+    grantee_jcn = jcn
   )
 
 # Column names change from year to year so are read in as multiple columns -----
@@ -82,7 +83,7 @@ subsidies <- subsidies %>% mutate(
     npo_type = coalesce(npo_type, npo_type)
   ) %>% 
   # Remove duplicated columns that are now coalesced
-  select(-grantee_detail2, -grantee2, -grantee3, -amount2, -grantee_jcn,
+  select(-grantee_detail2, -grantee2, -grantee3, -amount2, -jcn,
          -admin_division2, -npo_type2, -admin_division3)
 
 # Starting H28 there are no separate grantee and grantee_detail columns. -------
@@ -133,6 +134,7 @@ subsidies <- subsidies %>%
   mutate(grantee_clean = gsub(".*法人","", grantee), # Remove NPO signifier
          grantee_clean = gsub("\\s*\\([^\\)]+\\)", "" , grantee_clean), # Remove information in parens
          grantee_clean = gsub("\\s*\\（[^\\)]+\\）", "" , grantee_clean), # Remove information in parens
+         grantee_clean = na_if(grantee_clean, "－"),
          # More targeted manual cleaning
          grantee_clean = str_remove(grantee_clean, "名古屋掖済会病院"), # Two names listed in row
          grantee_clean = str_remove(grantee_clean, "アサヒビール大山崎山荘美術館"), # Two names listed in row
@@ -164,11 +166,11 @@ subsidies <- subsidies %>%
   mutate(grant_type = "Subsidy", # Add identifier for subsidies
          amount = as.numeric(gsub("[^0-9.-]", "", amount))) %>% 
   select(granter_ministry, grant_date, grant_month, grant_year, amount, 
-         grantee_clean, grantee, grantee_detail, jcn, 
+         grantee_clean, grantee, grantee_detail, grantee_jcn, description, 
          grant_name, grant_type, npo_type, admin_division, filename)
 
 # Export data to CSV -----------------------------------------------------------
-write_csv(subsidies, "data/npo/subsidies_clean.csv")
+write_csv(subsidies, "data/subsidies_clean.csv")
 
 # Expand into time series dataset ----------------------------------------------
 subsidies_ts <- subsidies %>%

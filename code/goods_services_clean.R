@@ -35,7 +35,7 @@ num_bidders = syms(grep("応札・応募者数", names(gs), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(gs), value = TRUE))
 grantee_jcn = syms(c("法人番号"))
 npo_type = syms(c("公益法人の区分"))
-#contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(gs), value = TRUE))
+contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(gs), value = TRUE))
 govt_reemployees = syms(grep("再就職の役員の数|再就職の\r\n役員の数", names(gs), value = TRUE))
 notes = syms(grep("備　　考|備考|備　考", names(gs), value = TRUE))
 
@@ -53,7 +53,7 @@ gs <- gs %>%
     num_bidders = coalesce(!!! num_bidders),
     admin_division = coalesce(!!! admin_division),
     grantee_jcn = coalesce(!!! grantee_jcn),
-    #contract_reason = coalesce(!!! contract_reason),
+    contract_reason = coalesce(!!! contract_reason),
     govt_reemployees = coalesce(!!! govt_reemployees),
     npo_type = coalesce(!!! npo_type),
     notes = coalesce(!!! notes)
@@ -76,9 +76,6 @@ gs <- gs %>%
     est_actual_ratio = "落札率",
     granter_jcn = "支出元独立行政法人の法人番号"
   )
-
-colnames(gs) # List column names
-#rm(list=setdiff(ls(), "gs")) # Clear intermediary objects from workspace
 
 # Remove NA rows (from notes at end of raw Excel files) ------------------------
 gs <- gs %>% filter(!is.na(amount))
@@ -112,6 +109,7 @@ check <- gs %>% select(amount_est, amount)
 # Pull address out of NPO where necessary
 gs <- gs %>%
   mutate(
+    # Use grantee detail column if main grantee column is empty
     grantee_clean = ifelse(is.na(grantee), grantee_detail, grantee),
     grantee_clean = gsub("\\s*\\（[^\\）]+\\）", "" , grantee_clean), # Remove information in parens
     # Extract string to the right of first occurrence of 法人
@@ -120,12 +118,22 @@ gs <- gs %>%
     grantee_detail_clean = str_remove(grantee_clean, ".*法人"),
     grantee_clean = ifelse(is.na(grantee), sub("\\s.*", "", grantee_detail_clean),
                            grantee_clean),
+    # Remove NPO type information in parenthesis
+    # There are also some firm name acronyms in parens that should also be removed
+    grantee_clean = gsub("\\s*\\([^\\)]+\\)","", grantee_clean),
+    grantee_clean = str_remove(grantee_clean, "\\(社\\）"),
+    # Replace blank space or dash with NA
+    grantee_clean = na_if(grantee_clean, ""),
+    grantee_clean = ifelse(grantee_clean == "-", NA, grantee_clean),
     # Manual name cleaning
     grantee_clean = case_when(
       grepl("リバーフロント研究所", grantee_clean) ~ "リバーフロント研究所",
       grepl("日本測量調査技術協会", grantee_clean) ~ "日本測量調査技術協会",
+      grepl("	ｱｼﾞｱ・ｱﾌﾘｶ文化財団", grantee_clean) ~ "アジア・アフリカ文化財団",
       TRUE ~ grantee_clean
-    )
+    ),
+    #grantee_clean = zen2han(grantee_clean),
+    grantee_clean = sanitizeZenkaku(grantee_clean),
   ) %>% 
   select(-grantee_detail_clean)
 
@@ -203,9 +211,6 @@ gs <- gs %>% mutate(
   amount_clean = str_remove(amount_clean, "（単価契約）")
   )
 
-sub('(変更後).*', '', nonnumeric$amount)
-
-
 # Remove odd entries from dataframe
 # Can revisit if clarification given by cabinet office
 # Note: Removes 0.16% of data
@@ -238,8 +243,6 @@ gs <- gs %>%
     amount_clean = str_replace(amount_clean, "令和元年12月18日に変更契約 変更後金額：", "")
   )
 
-nonnumeric <- gs[is.na(as.numeric(as.character(gs$amount_clean))),]
-
 # Where grants delivered in batches listed with multiple numbers in same cell,
 # Combine grant amounts
 gs <- gs %>%
@@ -254,10 +257,21 @@ gs <- gs %>%
   mutate(amount_clean = sum(amount_clean, amount_clean2, amount_clean3, na.rm = TRUE)) %>%
   select(-amount_clean2, -amount_clean3)
 
-# Add indicator for type of bidding procedure ----------------------------------
+# Clean bidding information ----------------------------------------------------
+unique(gs$num_bidders)
 gs <- gs %>%
-  mutate(competitive_bid = ifelse(str_detect(filename, "2-3|3-3"), 
-                                  "Competitive", "Negotiated"))
+  mutate(
+    # Clean number of bidders column
+    num_bidders = as.numeric(case_when(
+      num_bidders %in% c("-", "－", "－", "＿") ~ "0",
+      num_bidders == "１者" ~ "1",
+      num_bidders == "２者" ~ "2",
+      TRUE ~ num_bidders
+    )), 
+    # Add indicator for type of bidding procedure
+    competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+                             "Competitive", "Negotiated")
+  )
 
 # Clean govt re-employment column in NPO data amounts -------------------------
 # NOTE: Only exists for non-competitive bid contracts. Therefore not a
@@ -308,8 +322,8 @@ gs <- gs %>%
   select(granter_ministry, granter_jcn, grant_date, grant_month, grant_year, 
          amount, amount_est,
          grantee_clean, grantee, grantee_detail, grantee_jcn, 
-         grant_name, grant_type, npo_type, admin_division, filename,
-         govt_reemployees) %>%
+         grant_name, description, grant_type, npo_type, admin_division,
+         num_bidders, competitive_bid, govt_reemployees, filename) %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV
