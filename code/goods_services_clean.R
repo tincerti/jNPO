@@ -170,60 +170,93 @@ gs <- gs %>%
 # Clean grant amounts ----------------------------------------------------------
 # Pull out numeric value where multiple values and/or characters listed
 gs <- gs %>% mutate(
+  amount_clean = amount,
+  # Convert column to half-width
+  across(c(amount_clean, amount_est), ~sanitizeZenkaku(.)),
+  # Remove Yen symbol and convert "-" to 0
+  across(c(amount_clean, amount_est), ~str_remove(., "円|円")),
+  across(c(amount_clean, amount_est), ~ifelse(. %in% c("－", "-"), 0, .)),
   # convert USD amount to JPY using FOREX on day of grant
-  amount = ifelse( 
-    str_detect(amount, "US\\$"), 
-    as.character(as.numeric(str_extract(amount, "[[:digit:]]+")) * 80.2223), 
-    amount),
-  # Keep only value after total where indicator of total value paid given
-  amount = sub('.*（変更）', '', amount),
-  amount = sub('.*（変更後）', '', amount),
-  amount = sub('.*総額', '', amount),
-  amount = sub('.*実績額:', '', amount)
-  ) %>%
-  # Combine grant amounts where multiple listed in same cell
-  separate(amount, c("amount", "amount2"), sep = "\\)") 
+  amount_clean = ifelse( 
+    str_detect(amount_clean, "US\\$"), 
+    as.character(as.numeric(str_extract(amount_clean, "[[:digit:]]+")) * 80.2223), 
+    amount_clean),
+  # Keep only value before or after total where indicator of total value paid given
+  amount_clean = sub('.*（変更）', '', amount_clean),
+  amount_clean = sub('（変更後）.*', '', amount_clean),
+  amount_clean = sub('.*総額', '', amount_clean),
+  amount_clean = sub('.*実績額:', '', amount_clean),
+  amount_clean = sub('.*支払実績', '', amount_clean),
+  amount_clean = sub('.*計画変更後：', '', amount_clean),
+  amount_clean = sub('.*変更後金額:', '', amount_clean),
+  amount_clean = sub('.*計画変更後:', '', amount_clean),
+  amount_clean = sub('。初回交付決定後の額は.*', '', amount_clean),
+  amount_clean = sub('、初回契約金額は.*', '', amount_clean),
+  amount_clean = sub('出演者一部休演における変更契約後の契約金額.*', '', amount_clean),
+  amount_clean = sub('平成29年10月5日（減額変更契約日。.*', '', amount_clean),
+  amount_clean = sub('.*当初契約金額', '', amount_clean), # Pulls number AFTER 当初契約金額 and before 最終契約金額
+  amount_clean = sub('①.*', '', amount_clean),
+  amount_clean = sub('（予定総価）.*', '', amount_clean),
+  amount_clean = sub('税込.*', '', amount_clean),
+  amount_clean = sub("\\（変更契約金額.*|\\（変更交付決定後の額|\\(変更契約金額", "", amount_clean),
+  amount_clean = str_remove(amount_clean, "（支払実績）|\\(支払実績"),
+  amount_clean = str_remove(amount_clean, "（単価契約）")
+  )
 
-nonnumeric <- gs[is.na(as.numeric(as.character(gs$amount))),]
+sub('(変更後).*', '', nonnumeric$amount)
 
-# %>%
-#   # Remove all remaining non-numeric characters from amount column
-#   mutate(
-#     amount = as.numeric(str_extract(amount, "-?\\d+"))
-#     )
 
 # Remove odd entries from dataframe
 # Can revisit if clarification given by cabinet office
 # Note: Removes 0.16% of data
 gs <- gs %>%
   filter(
-    !str_detect(amount, "ほか"),
-    !str_detect(amount, "口座振替済"),
-    !str_detect(amount, "計画変更後契約金額"),
     !str_detect(amount, "月額"), # No way of knowing how many months contract lasted
     !str_detect(amount, "単価"), # No way of knowing how many units purchased
-    !str_detect(amount, "会場使用料"), # Same as above, includes per unit fees 
+    !str_detect(amount, "会場使用料"), # Same as above (per unit fees)
+    !str_detect(amount, "/時間|／時間単位"), # Same as above
+    !str_detect(amount, "／シフト|/シフト"), # Same as above (per shift fees)
+    !str_detect(amount, "ほか"), # Same as above
+    !str_detect(amount, "/件"), # Same as above
+    !str_detect(amount, "口座振替済"),
+    !str_detect(amount, "計画変更後契約金額"),
     !str_detect(amount, "登記情報提供契約約款に定めた金額"),
     !str_detect(amount, "実施1回あたり"),
     !str_detect(amount, "身体計測"),
     !str_detect(amount, "品目ごとの単価契約"),
-    !str_detect(amount, "ＧＭサーベイメータ")
+    !str_detect(amount, "ＧＭサーベイメータ|GMサ-ベイメ-タ"),
+    !str_detect(amount, "1クラス1回|1ｸﾗｽ1回"),
+    amount != "）", 
+    amount != ")"
   ) %>%
   # Remove unnecessary words and characters from amount column
   mutate(
-    across(c(amount, amount_est), ~ifelse(. %in% c("－", "-"), 0, .)),
-    across(c(amount, amount_est), ~str_remove(., "円")),
     amount_est = ifelse(amount_est == "非公表", NA, amount_est),
-    amount = str_replace(amount, "予定調達総額", ""),
-    amount = str_replace(amount, "支払実績", ""),
-    amount = str_replace(amount, "平成31・令和元年度実績額：", ""),
-    amount = str_replace(amount, "令和元年12月18日に変更契約 変更後金額：", ""),
-    amount = str_replace(amount, "／シフト", "")
+    amount_clean = str_replace(amount_clean, "予定調達総額", ""),
+    amount_clean = str_replace(amount_clean, "支払実績", ""),
+    amount_clean = str_replace(amount_clean, "平成31・令和元年度実績額：", ""),
+    amount_clean = str_replace(amount_clean, "令和元年12月18日に変更契約 変更後金額：", "")
   )
+
+nonnumeric <- gs[is.na(as.numeric(as.character(gs$amount_clean))),]
+
+# Where grants delivered in batches listed with multiple numbers in same cell,
+# Combine grant amounts
+gs <- gs %>%
+  # Perform separations of multiple listed amounts
+  separate(amount_clean, c("amount_clean", "amount_clean2"), sep = "\\)") %>%
+  separate(amount_clean, c("amount_clean", "amount_clean3"), sep = "\\（|\\(") %>%
+  # Remove all remaining non-numeric characters from cleaned amount columns
+  mutate(across(c(amount_clean, amount_clean2, amount_clean3),
+           ~as.numeric(str_extract(., "-?\\d+")))) %>%
+  # Sum across batches
+  rowwise() %>%
+  mutate(amount_clean = sum(amount_clean, amount_clean2, amount_clean3, na.rm = TRUE)) %>%
+  select(-amount_clean2, -amount_clean3)
 
 # Add indicator for type of bidding procedure ----------------------------------
 gs <- gs %>%
-  mutate(competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+  mutate(competitive_bid = ifelse(str_detect(filename, "2-3|3-3"), 
                                   "Competitive", "Negotiated"))
 
 # Clean govt re-employment column in NPO data amounts -------------------------
