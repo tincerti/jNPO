@@ -146,7 +146,7 @@ pw <- pw %>%
 pw <- pw %>%
   mutate(
     govt_reemployees = case_when(
-      competitive_bid == "Competitive" ~ "-99",
+      competitive_bid == "Competitive" ~ NA_character_,
       govt_reemployees == "－" | govt_reemployees == "-" ~ "0",
       is.na(govt_reemployees) & competitive_bid == "Negotiated" ~ "0",
       TRUE ~ govt_reemployees),

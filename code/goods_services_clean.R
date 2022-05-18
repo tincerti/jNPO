@@ -269,7 +269,7 @@ gs <- gs %>%
       TRUE ~ num_bidders
     )), 
     # Add indicator for type of bidding procedure
-    competitive_bid = ifelse(str_detect(filename, "2-1|3-1"), 
+    competitive_bid = ifelse(str_detect(filename, "2-3|3-3"), 
                              "Competitive", "Negotiated")
   )
 
@@ -280,8 +280,8 @@ gs <- gs %>%
 gs <- gs %>%
   mutate(
     govt_reemployees = case_when(
-      competitive_bid == "Competitive" ~ "-99",
-      govt_reemployees %in% c("－", "-", "　－", "無")  ~ "0",
+      competitive_bid == "Competitive" ~ NA_character_,
+      govt_reemployees %in% c("－", "-", "　－", "ー", "―", "‐", "無")  ~ "0",
       is.na(govt_reemployees) & competitive_bid == "Negotiated" ~ "0",
       TRUE ~ govt_reemployees),
     govt_reemployees = str_remove(govt_reemployees, "名")

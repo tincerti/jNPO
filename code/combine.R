@@ -45,9 +45,12 @@ jnpo <- jnpo %>%
   group_by(granter_ministry)  %>%
   ungroup()
 
-# Label missing bid type -99 for subsidies 
+# Label missing information -99 where applicable 
 jnpo <- jnpo %>%
-  mutate(competitive_bid = ifelse(grant_type == "Subsidy", -99, competitive_bid))
+  mutate(
+    competitive_bid = ifelse(grant_type == "Subsidy", -99, competitive_bid),
+    npo_type = ifelse(is.na(npo_type), -99, npo_type)
+    )
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # EXPORT TO CSV ----
