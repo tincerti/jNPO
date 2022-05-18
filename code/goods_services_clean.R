@@ -26,7 +26,7 @@ gs <- read_dir("data/goods_services", "xlsx", filename = T, skip = 1,
 granter_ministry = syms(grep("支出元府省|所管府省", names(gs), value = TRUE))
 description = syms(c("物品役務等の名称及び数量", "物品役務等の名称\r\n及び数量"))
 grantee = syms(grep("相手方法人の名|相手方の法人名", names(gs), value = TRUE))
-grantee_detail = syms(grep("契約の相手方の商号又は名称及び住所|契約の相手方の商号又は\r\n名称及び住所", names(gs), value = TRUE))
+grantee_detail = syms(grep("契約の相手方の商号又は名称|契約の相手方の商号又は\r\n名称及び住所", names(gs), value = TRUE))
 grant_name = syms(grep("契約担当", names(gs), value = TRUE))
 amount_est = syms(grep("予定価格", names(gs), value = TRUE))
 amount = syms(grep("契約金額", names(gs), value = TRUE))
@@ -312,6 +312,26 @@ gs <- gs %>%
     grepl("内閣官房", granter_ministry) ~ "Cabinet secretariate",
     TRUE ~ granter_ministry
   ))
+
+# Clean NPO type column --------------------------------------------------------
+gs <- gs %>% mutate(npo_type = case_when(
+  
+  npo_type == "－" ~ "-99",
+  
+  grepl("特財", npo_type) & grepl("特社", npo_type) ~ "特財 特社",
+  grepl("特財", npo_type) & grepl("公社", npo_type) ~ "特財 公社",
+  grepl("特財", npo_type) & grepl("公財", npo_type) ~ "特財 公財",
+  grepl("特社", npo_type) & grepl("公財", npo_type) ~ "特社 公財",
+  grepl("特社", npo_type) & grepl("公社", npo_type) ~ "特社 公社",
+  grepl("公社", npo_type) & grepl("公財", npo_type) ~ "公社 公財",
+  
+  grepl("特財", npo_type) ~ "特財",
+  grepl("特社", npo_type) ~ "特社",
+  grepl("公社", npo_type) ~ "公社",
+  grepl("公財", npo_type) ~ "公財",
+
+  TRUE ~ npo_type
+))
 
 # Final data cleaning, prep, and CSV export ------------------------------------
 gs <- gs %>% 
