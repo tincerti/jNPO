@@ -45,7 +45,7 @@ jnpo <- jnpo %>%
   group_by(granter_ministry)  %>%
   ungroup()
 
-# Label missing information -99 where applicable 
+# Label missing indicator -99 to categorical variables where applicable 
 jnpo <- jnpo %>%
   mutate(
     competitive_bid = ifelse(grant_type == "Subsidy", -99, competitive_bid),

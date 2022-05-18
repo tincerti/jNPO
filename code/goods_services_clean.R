@@ -333,6 +333,15 @@ gs <- gs %>% mutate(npo_type = case_when(
   TRUE ~ npo_type
 ))
 
+# Clean admin division column --------------------------------------------------
+gs <- gs %>% mutate(admin_division = case_when(
+  grepl("国所管", admin_division) & grepl("国認定", admin_division) ~ "国所管 国認定",
+  grepl("国所管", admin_division) & grepl("都道府県所管", admin_division) ~ "国所管 都道府県所管",
+  grepl("国所管", admin_division) ~ "国所管",
+  grepl("国認定", admin_division) ~ "国認定",
+  TRUE ~ admin_division
+))
+
 # Final data cleaning, prep, and CSV export ------------------------------------
 gs <- gs %>% 
   mutate(
