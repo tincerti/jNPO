@@ -34,7 +34,7 @@ jnpo <- jnpo %>%
     )
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-# FILL NA VALUES WHERE APPLICABLE ----
+# FILL OR REMOVE NA VALUES WHERE APPLICABLE ----
 # ______________________________________________________________________________
 
 # Fill NA JCN codes by group (grantee)
@@ -52,10 +52,22 @@ jnpo <- jnpo %>%
     npo_type = ifelse(is.na(npo_type), -99, npo_type)
     )
 
+# Remove NA dates
+jnpo <- jnpo %>% filter(!is.na(grant_date))
+
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-# EXPORT TO CSV ----
+# FORMAT DATA TYPES ----
 # ______________________________________________________________________________
 
+# Format dates
+jnpo <- jnpo %>%
+  mutate(grant_year = year(grant_date), grant_month = yearmonth(grant_date))
+
+# ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+# EXPORT TO Rdata & CSV ----
+# ______________________________________________________________________________
+
+save(jnpo, file = "jnpo.RData")
 write_csv(jnpo, "jnpo.csv")
 
 

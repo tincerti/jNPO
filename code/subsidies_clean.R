@@ -141,6 +141,7 @@ subsidies <- subsidies %>%
          grantee_clean = str_remove(grantee_clean, " ）|）"), # Some random trailing parens
          grantee_clean = str_remove(grantee_clean, "\r\n東京都渋谷区東2-22-14 ロゼ氷川6階"), # Remove address
          grantee_clean = str_remove(grantee_clean, "\r\n東京都新宿区左門町6-17 YSKビル7F"), # Remove address
+         grantee_clean = str_remove(grantee_clean, "東京都千代田区平河町2-6-3"), # Remove address
          grantee_clean = str_trim(grantee_clean, side = "both"), # Remove whitespace
          # Convert to half-width characters
          grantee_clean = sanitizeZenkaku(grantee_clean) 

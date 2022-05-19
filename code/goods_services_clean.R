@@ -130,6 +130,7 @@ gs <- gs %>%
       grepl("リバーフロント研究所", grantee_clean) ~ "リバーフロント研究所",
       grepl("日本測量調査技術協会", grantee_clean) ~ "日本測量調査技術協会",
       grepl("ｱｼﾞｱ・ｱﾌﾘｶ文化財団", grantee_clean) ~ "アジア・アフリカ文化財団",
+      grepl("原子力安全研究協会", grantee_clean) ~ "原子力安全研究協会",
       TRUE ~ grantee_clean
     ),
     #grantee_clean = zen2han(grantee_clean),
