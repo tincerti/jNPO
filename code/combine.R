@@ -52,8 +52,9 @@ jnpo <- jnpo %>%
     npo_type = ifelse(is.na(npo_type), -99, npo_type)
     )
 
-# Remove NA dates
-jnpo <- jnpo %>% filter(!is.na(grant_date))
+# Remove NA dates and firms
+jnpo <- jnpo %>% 
+  filter(!is.na(grant_date), !is.na(amount), !is.na(grantee_clean))
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # FORMAT DATA TYPES ----
@@ -61,7 +62,10 @@ jnpo <- jnpo %>% filter(!is.na(grant_date))
 
 # Format dates
 jnpo <- jnpo %>%
-  mutate(grant_year = year(grant_date), grant_month = yearmonth(grant_date))
+  mutate(grant_date = as.Date(grant_date),
+         grant_year = year(grant_date), 
+         grant_month = yearmonth(grant_date),
+         amount = as.numeric(amount))
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # EXPORT TO Rdata & CSV ----
