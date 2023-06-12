@@ -122,10 +122,15 @@ gs <- gs %>%
     # There are also some firm name acronyms in parens that should also be removed
     grantee_clean = gsub("\\s*\\([^\\)]+\\)","", grantee_clean),
     grantee_clean = str_remove(grantee_clean, "\\(社\\）"),
+
     # Replace blank space or dash with NA
     grantee_clean = na_if(grantee_clean, ""),
     grantee_clean = ifelse(grantee_clean == "-", NA, grantee_clean),
     # Manual name cleaning
+    grantee_clean = ifelse(!grantee_clean %in% 
+      c("東京都スポーツ文化事業団", "東京都医学総合研究所", "東京都医師会", 
+        "東京都専修学校各種学校協会"), sub("東京都.*", "", grantee_clean),
+      grantee_clean),
     grantee_clean = case_when(
       grepl("リバーフロント研究所", grantee_clean) ~ "リバーフロント研究所",
       grepl("日本測量調査技術協会", grantee_clean) ~ "日本測量調査技術協会",
@@ -360,19 +365,3 @@ gs <- gs %>%
 
 # Export to CSV
 write_csv(gs, "data/goods_services_clean.csv")
-
-# Expand into time series dataset ----------------------------------------------
-gs_ts <- gs %>%
-  group_by(granter_ministry, grantee_clean, grant_month, grant_type) %>%
-  summarize(
-    amount = sum(amount),
-    amount_est = sum(amount_est)
-  ) %>%
-  as_tsibble(key = c(granter_ministry, grantee_clean, grant_type), 
-             index = grant_month) %>% 
-  fill_gaps(.full = TRUE) %>%
-  mutate(
-    amount = ifelse(is.na(amount), 0, amount),
-    amount_est = ifelse(is.na(amount_est), 0, amount_est)
-  )
-
