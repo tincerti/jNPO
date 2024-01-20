@@ -39,7 +39,9 @@ Variables provided are as follows:
   
 2.  At the agency-date-grantee level. This data contains variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
 
-These data files can be found in the "data" folder as: goods_services_clean.csv, public_works_clean.csv, and subsidies_clean.csv.
+These data files can be found in the "data_clean" folder as: goods_services_clean.csv, public_works_clean.csv, and subsidies_clean.csv.
+
+All raw (uncleaned) data files can be found in the "data_raw" folder and subfolders. 
 
 ### Replication Code (relative path "~/code")
 
