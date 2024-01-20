@@ -18,7 +18,7 @@ source("code/0. functions.R")
 # ______________________________________________________________________________
 
 # Read in all excel files from directory ---------------------------------------
-subsidies <- read_dir("data/subsidies", "xlsx", filename = T, skip = 2,
+subsidies <- read_dir("data_raw/subsidies", "xlsx", filename = T, skip = 2,
                 col_types = "text")
   
 # Rename columns from Japanese to English --------------------------------------
@@ -171,7 +171,7 @@ subsidies <- subsidies %>%
          grant_name, grant_type, npo_type, admin_division, filename)
 
 # Export data to CSV -----------------------------------------------------------
-write_csv(subsidies, "data/subsidies_clean.csv")
+write_csv(subsidies, "data_clean/subsidies_clean.csv")
 
 # Expand into time series dataset ----------------------------------------------
 subsidies_ts <- subsidies %>%

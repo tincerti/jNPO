@@ -14,7 +14,7 @@ library(tsibble)
 source("code/0. functions.R")
 
 # Read in cleaned files --------------------------------------------------------
-jnpo <- read_dir("data", extension = "csv", delim = ",", filename = FALSE)
+jnpo <- read_dir("data_clean", extension = "csv", delim = ",", filename = FALSE)
 
 # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 # ARRANGE AND SORT COLUMNS ----

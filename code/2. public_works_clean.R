@@ -18,7 +18,7 @@ source("code/0. functions.R")
 # ______________________________________________________________________________
 
 # Read in all excel files from directory (NOTE: Author written function) -------
-pw <- read_dir("data/public_works", "xlsx", filename = T, skip = 1,
+pw <- read_dir("data_raw/public_works", "xlsx", filename = T, skip = 1,
                col_types = "text")
 
 # Rename columns from Japanese to English --------------------------------------
@@ -185,7 +185,7 @@ pw <- pw %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV
-write_csv(pw, "data/public_works_clean.csv")
+write_csv(pw, "data_clean/public_works_clean.csv")
 
 # Expand into time series dataset ----------------------------------------------
 pw_ts <- pw %>%

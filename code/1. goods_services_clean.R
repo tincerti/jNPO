@@ -18,7 +18,7 @@ source("code/0. functions.R")
 # ______________________________________________________________________________
 
 # Read in all excel files from directory (NOTE: Author written function) -------
-gs <- read_dir("data/goods_services", "xlsx", filename = T, skip = 1,
+gs <- read_dir("data_raw/goods_services", "xlsx", filename = T, skip = 1,
                col_types = "text")
 
 # Rename columns from Japanese to English --------------------------------------
@@ -364,4 +364,4 @@ gs <- gs %>%
   arrange(grant_date, granter_ministry, grantee_clean)
 
 # Export to CSV
-write_csv(gs, "data/goods_services_clean.csv")
+write_csv(gs, "data_clean/goods_services_clean.csv")
