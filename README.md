@@ -14,7 +14,7 @@ This project therefore provides a cleaned, analyzable version of this data.
 
 All data files are presented in two formats:  
 
-1. In time-series format at the agency-month of grant-grantee level. This format collapses the data to include the total amount of grants given by each agency to each NPO in a given month. For months where no grant was given, the *grant_amount* is 0. 
+**1.** In time-series format at the agency-month of grant-grantee level. This format collapses the data to include the total amount of grants given by each agency to each NPO in a given month. For months where no grant was given, the *grant_amount* is 0. 
 
 The cleaned data file can be found in jNPO.csv or jNPO.RData.
 
@@ -37,9 +37,11 @@ Variables provided are as follows:
   - *grant_type*: The type of grant (i.e., goods and services, public works, or subsidy). 
   - *description*: Description of the contract (in Japanese) from the raw data file. 
   
-2.  At the agency-date-grantee level. This data contains variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
+   
+**2.**  At the agency-date-grantee level. This data contains variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
 
 These data files can be found in the "data_clean" folder as: goods_services_clean.csv, public_works_clean.csv, and subsidies_clean.csv.
+
 
 All raw (uncleaned) data files can be found in the "data_raw" folder and subfolders. 
 
