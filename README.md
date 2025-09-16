@@ -36,8 +36,14 @@ Variables provided are as follows:
   - *grantee_detail*: The name of the NPO grantee and associated details (e.g., address) as listed in the raw source files. 
   - *grant_type*: The type of grant (i.e., goods and services, public works, or subsidy). 
   - *description*: Description of the contract (in Japanese) from the raw data file. 
+  - *contract_reason*: Description of the justification of why a particular public proposal method was adopted, if applicable. 
+  - *amount_est*: Estimated contract price (may be different from actually contract amount). 
+  - *govt_reemployees*: Number of government officials re-employeed at NPO. 
+  - *npo_type*: The specific type of NPO (e.g., public interest corporation). 
+  - *admin_division*: Whether contract was classified by national jurisdiction or prefectural jurisdiction (note: always national). 
+  - *filename*: name of original excel file from Cabinet Office. 
   
-   
+ 
 **2.**  At the agency-date-grantee level. This data contains variables for each subsidy or contract granted by a government ministry or agency for the date the subsidy or contract was issued.
 
 These data files can be found in the "data_clean" folder as: goods_services_clean.csv, public_works_clean.csv, and subsidies_clean.csv.
