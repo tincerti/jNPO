@@ -25,8 +25,8 @@ pw <- read_dir("data_raw/public_works", "xlsx", filename = T, skip = 1,
 # Use regex to find patterns in differing columns to pass to coalesce 
 granter_ministry = syms(grep("支出元府省|所管府省", names(pw), value = TRUE))
 description = syms(c("公共工事の名称、場所、期間及び種別", "物品役務等の名称及び数量", "公共工事の名称、場所、\r\n期間及び種別"))
-grantee = syms(c("支出元独立行政法人の名称", grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE)))
-grantee_detail = syms(grep("相手方の商号又は名称及び住所|支出元独立行政法人の名称及び法人番号|契約の相手方の商号又は名称、住所及び法人番号|契約の相手方の商号又は\r\n名称及び住所", names(pw), value = TRUE))
+grantee = syms(grep("相手方法人の名|相手方の法人名|平成25年8月末時点|平成26年11月時点", names(pw), value = TRUE))
+grantee_detail = syms(grep("相手方の商号又は名称及び住所|契約の相手方の商号又は名称、住所及び法人番号|契約の相手方の商号又は\r\n名称及び住所", names(pw), value = TRUE))
 grant_name = syms(grep("契約担当", names(pw), value = TRUE))
 amount_est = syms(grep("予定価格", names(pw), value = TRUE))
 amount = syms(grep("契約金額", names(pw), value = TRUE))
@@ -174,6 +174,15 @@ pw <- pw %>%
     TRUE ~ granter_ministry
   ))
 
+# Clean Japan corporation numbers ----------------------------------------------
+pw <- pw %>%
+  mutate(
+    grantee_jcn = if_else(
+      str_detect(grantee_detail, "\\d{13}"), str_extract(grantee_detail, "\\d{13}"),
+      grantee_jcn),
+    grantee_jcn = as.numeric(grantee_jcn)
+  )
+
 # Final data cleaning, prep, and CSV export ------------------------------------
 pw <- pw %>% 
   mutate(grant_type = "Public Works") %>% # Add identifier for contracts
@@ -186,19 +195,4 @@ pw <- pw %>%
 
 # Export to CSV
 write_csv(pw, "data_clean/public_works_clean.csv")
-
-# Expand into time series dataset ----------------------------------------------
-pw_ts <- pw %>%
-  group_by(granter_ministry, grantee_clean, grant_month, grant_type) %>%
-  summarize(
-    amount = sum(amount),
-    amount_est = sum(amount_est)
-    ) %>%
-  as_tsibble(key = c(granter_ministry, grantee_clean, grant_type), 
-             index = grant_month) %>% 
-  fill_gaps(.full = TRUE) %>%
-  mutate(
-    amount = ifelse(is.na(amount), 0, amount),
-    amount_est = ifelse(is.na(amount_est), 0, amount_est)
-    )
 

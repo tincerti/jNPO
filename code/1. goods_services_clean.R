@@ -33,7 +33,7 @@ amount = syms(grep("契約金額", names(gs), value = TRUE))
 bidding_type = syms(grep("一般競争入札・指名競争入札の別", names(gs), value = TRUE))
 num_bidders = syms(grep("応札・応募者数", names(gs), value = TRUE))
 admin_division = syms(grep("都道府県所管の区分|都道府県認定の区分", names(gs), value = TRUE))
-grantee_jcn = syms(c("法人番号"))
+grantee_jcn = syms(c("法人番号", "契約の相手方の法人番号"))
 npo_type = syms(c("公益法人の区分"))
 contract_reason = syms(grep("随意契約によることとした会計法令|随意契約によることとした業務方法書又は会計規定等の根拠規定及び理由", names(gs), value = TRUE))
 govt_reemployees = syms(grep("再就職の役員の数|再就職の\r\n役員の数", names(gs), value = TRUE))
@@ -349,6 +349,15 @@ gs <- gs %>% mutate(admin_division = case_when(
   grepl("国認定", admin_division) ~ "国認定",
   TRUE ~ admin_division
 ))
+
+# Clean Japan corporation numbers ----------------------------------------------
+gs <- gs %>%
+  mutate(
+    grantee_jcn = if_else(
+      str_detect(grantee_detail, "\\d{13}"), str_extract(grantee_detail, "\\d{13}"),
+      grantee_jcn),
+    grantee_jcn = as.numeric(grantee_jcn)
+  )
 
 # Final data cleaning, prep, and CSV export ------------------------------------
 gs <- gs %>% 

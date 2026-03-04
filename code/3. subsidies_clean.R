@@ -70,7 +70,8 @@ subsidies <- subsidies %>% mutate(
     jcn = ifelse(is.na(jcn), gsub("[^0-9.]", "", grantee_jcn), jcn),
     grantee = ifelse(is.na(grantee), gsub("法人番号.*", "", grantee_jcn), grantee),
     grantee = sub("\\s+[^ ]+[0-9]$", "", grantee),
-    grantee_jcn = jcn
+    grantee_jcn = jcn,
+    grantee_jcn = as.numeric(grantee_jcn)
   )
 
 # Column names change from year to year so are read in as multiple columns -----
